@@ -10,7 +10,7 @@ declare global {
   }
 }
 export function addDebugHooks() {
-  if (process.env.NODE_ENV === "development") {
+  if (import.meta.env.NODE_ENV === "development") {
     window.resetGame = () => {
       const state = store.getState();
       const practice = state.game.practice;

@@ -4,8 +4,8 @@ import { useDispatch } from "react-redux";
 import fullscreenExitSvg from "../assets/fullscreen-exit.svg";
 import fullscreenSvg from "../assets/fullscreen.svg";
 import helpSvg from "../assets/help.svg";
-import settingsSvg from "../assets/settings.svg";
-import statsSvg from "../assets/stats.svg";
+import Settings from "../assets/settings.svg?react";
+import Stats from "../assets/stats.svg?react";
 import { NUM_BOARDS, NUM_GUESSES, PRACTICE_MODE_MIN_ID } from "../consts";
 import {
   enterFullscreen,
@@ -152,13 +152,14 @@ function Row1() {
       )}
       <p className={cn("title", titleClass)}>{title}</p>
       <button className="icon" onClick={() => dispatch(showPopup("stats"))}>
-        <img src={statsSvg} alt="Stats" />
+        <Stats role={"img"} aria-label={"Stats"} >
+        </Stats>
       </button>
       <button className="icon" onClick={() => dispatch(showPopup("about"))}>
         <img src={helpSvg} alt="Help" />
       </button>
       <button className="icon" onClick={() => dispatch(showPopup("settings"))}>
-        <img src={settingsSvg} alt="Settings" />
+        <Settings role={"img"} aria-label={"Settings"}/>
       </button>
       <button className="icon" onClick={handleFullscreenClick}>
         <img
