@@ -1,46 +1,40 @@
 import cn from "classnames";
-import { useMemo } from "react";
-import { useDispatch } from "react-redux";
-import twemoji from "twemoji";
+import React, { useMemo } from "react";
 import { NUM_BOARDS, NUM_GUESSES } from "../consts";
 import { formatTimeElapsed, getAllWordsGuessed } from "../funcs";
-import { createSideEffect, useSelector } from "../store";
+import { createSideEffect, useAppDispatch, useSelector } from "../store";
 
 type ResultProps = {
   hidden: boolean;
 };
 export default function Result(props: ResultProps) {
-  const dispatch = useDispatch();
-  const practice = useSelector((s) => s.game.practice);
-  const id = useSelector((s) => s.game.id);
-  const targets = useSelector((s) => s.game.targets);
-  const guesses = useSelector((s) => s.game.guesses);
-  const showTimer = useSelector((s) => s.settings.showTimer);
-  const timeElapsed = useSelector((s) => s.game.endTime - s.game.startTime);
+  const dispatch = useAppDispatch();
+  const practice = useSelector(s => s.game.practice);
+  const id = useSelector(s => s.game.id);
+  const targets = useSelector(s => s.game.targets);
+  const guesses = useSelector(s => s.game.guesses);
+  const showTimer = useSelector(s => s.settings.showTimer);
+  const timeElapsed = useSelector(s => s.game.endTime - s.game.startTime);
 
   const shareableText = useMemo(() => {
-    const targetGuessCounts: (number | null)[] = [];
+    const targetGuessCounts: Array<number | null> = [];
     for (const target of targets) {
       const idx = guesses.indexOf(target);
       targetGuessCounts.push(idx === -1 ? null : idx + 1);
     }
-    const guessCount = getAllWordsGuessed(targets, guesses)
-      ? guesses.length
-      : null;
-    return getShareableText(
-      practice,
-      id,
-      guessCount,
-      targetGuessCounts,
-      showTimer ? timeElapsed : null
-    );
+    const guessCount = getAllWordsGuessed(targets, guesses) ? guesses.length : null;
+    return getShareableText(practice, id, guessCount, targetGuessCounts, showTimer ? timeElapsed : null);
   }, [practice, id, targets, guesses, showTimer, timeElapsed]);
-  const parsed = twemoji.parse(shareableText) + "\n";
+
   const handleCopyToClipboardClick = () => {
     navigator.clipboard
       .writeText(shareableText)
-      .then(() => alert("Copied results to clipboard!"))
-      .catch(() => alert("There was an error copying text to the clipboard"));
+      .then(() => {
+        alert("Copied results to clipboard!");
+      })
+      .catch(() => {
+        alert("There was an error copying text to the clipboard");
+      });
   };
 
   const handleWordClick = (idx: number) => {
@@ -50,12 +44,18 @@ export default function Result(props: ResultProps) {
   return (
     <div className={cn("result", props.hidden && "hidden")}>
       <div className="share">
-        <pre className="text" dangerouslySetInnerHTML={{ __html: parsed }} />
+        <pre className="text">{shareableText}</pre>
         <button onClick={handleCopyToClipboardClick}>copy to clipboard</button>
       </div>
       <div className="words">
         {targets.map((target, i) => (
-          <button className="word" key={i} onClick={() => handleWordClick(i)}>
+          <button
+            className="word"
+            key={i}
+            onClick={() => {
+              handleWordClick(i);
+            }}
+          >
             {target}
           </button>
         ))}
@@ -81,8 +81,8 @@ function getShareableText(
   practice: boolean,
   id: number,
   guessCount: number | null,
-  targetGuessCounts: (number | null)[],
-  timeElapsed: number | null
+  targetGuessCounts: Array<number | null>,
+  timeElapsed: number | null,
 ) {
   const text = [];
   if (practice) {
@@ -115,6 +115,6 @@ function getShareableText(
 
     text.push(row.join(" ") + "\n");
   }
-  text.push("https://duotrigordle.com/");
-  return text.join("");
+  text.push("https://codingismy11to7.us/duotrigordle");
+  return text.join("") + "\n";
 }

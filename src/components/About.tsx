@@ -1,9 +1,7 @@
 import cn from "classnames";
-import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
-import twemoji from "twemoji";
+import React, { useEffect, useState } from "react";
 import { START_DATE } from "../consts";
-import { showPopup, useSelector } from "../store";
+import { showPopup, useAppDispatch, useSelector } from "../store";
 
 function getHoursRemaining() {
   const diff = Date.now() - START_DATE;
@@ -15,9 +13,9 @@ function getHoursRemaining() {
   }
 }
 export default function About() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [hoursRemaining, setHoursRemaining] = useState(getHoursRemaining);
-  const shown = useSelector((s) => s.ui.popup === "about");
+  const shown = useSelector(s => s.ui.popup === "about");
 
   useEffect(() => {
     // Update hoursRemaining every time popup is opened
@@ -35,42 +33,30 @@ export default function About() {
           {hoursRemaining === "1" ? "" : "s"}.
         </p>
         <hr className="separator" />
-        <p>Duotrigordle by Bryan Chen</p>
-        <p>Board highlight idea by Dr. Om Patel</p>
         <p>
+          <a target="_blank" href="https://duotrigordle.com" rel="noreferrer">
+            Duotrigordle
+          </a>{" "}
+          by Bryan Chen
+        </p>
+        <p>Board highlight idea by Dr. Om Patel</p>
+        <div>
           Source code on{" "}
-          <a
-            rel="noreferrer"
-            target="_blank"
-            href="https://github.com/thesilican/duotrigordle"
-          >
+          <a rel="noreferrer" target="_blank" href="https://github.com/codingismy11to7/duotrigordle">
             GitHub
           </a>
           <div className="kofi">
-            <span dangerouslySetInnerHTML={{ __html: twemoji.parse("💛") }} />{" "}
-            Duotrigordle?{" "}
-            <a
-              target="_blank"
-              href="https://ko-fi.com/thesilican"
-              rel="noreferrer"
-            >
-              Buy me a{" "}
-              <span
-                dangerouslySetInnerHTML={{ __html: twemoji.parse("☕️") }}
-              />{" "}
-              !
+            💛 Duotrigordle?{" "}
+            <a target="_blank" href="https://ko-fi.com/thesilican" rel="noreferrer">
+              Buy Bryan a ☕️!
             </a>
           </div>
-        </p>
+        </div>
         <hr className="separator" />
         <p>Based on</p>
         <ul>
           <li>
-            <a
-              rel="noreferrer"
-              target="_blank"
-              href="https://hexadecordle.co.uk/"
-            >
+            <a rel="noreferrer" target="_blank" href="https://hexadecordle.co.uk/">
               Hexadecordle
             </a>{" "}
             by Alfie Rayner
@@ -88,21 +74,13 @@ export default function About() {
             by @fireph
           </li>
           <li>
-            <a
-              rel="noreferrer"
-              target="_blank"
-              href="https://zaratustra.itch.io/dordle"
-            >
+            <a rel="noreferrer" target="_blank" href="https://zaratustra.itch.io/dordle">
               Dordle
             </a>{" "}
             by Guilherme S. Töws
           </li>
           <li>
-            <a
-              rel="noreferrer"
-              target="_blank"
-              href="https://www.nytimes.com/games/wordle/index.html"
-            >
+            <a rel="noreferrer" target="_blank" href="https://www.nytimes.com/games/wordle/index.html">
               Wordle
             </a>{" "}
             by Josh Wardle
@@ -110,15 +88,11 @@ export default function About() {
         </ul>
         <hr className="separator" />
         <div className="legal">
-          <a
-            target="_blank"
-            href="https://duotrigordle.com/privacy.html"
-            rel="noreferrer"
-          >
+          <a target="_blank" href="privacy.html" rel="noreferrer">
             Privacy Policy
           </a>
         </div>
-        <button className="close" onClick={() => dispatch(showPopup(null))}>
+        <button className="close" onClick={() => dispatch(showPopup(undefined))}>
           close
         </button>
       </div>

@@ -1,33 +1,18 @@
 import cn from "classnames";
-import { Fragment, useMemo } from "react";
-import { useDispatch } from "react-redux";
+import React, { Fragment, useMemo } from "react";
 import { formatTimeElapsed, range } from "../funcs";
-import {
-  addHistory,
-  GameHistory,
-  removeHistory,
-  showPopup,
-  StatsState,
-  useSelector
-} from "../store";
+import { GameHistory, showPopup, StatsState, useAppDispatch, useSelector } from "../store";
 
 export default function Stats() {
-  const dispatch = useDispatch();
-  const shown = useSelector((s) => s.ui.popup === "stats");
-  const stats = useSelector((s) => s.stats);
-  const {
-    played,
-    win,
-    currStreak,
-    maxStreak,
-    guessCount,
-    guessStyle,
-    bestTime,
-    avgTime7,
-    avgTimeAll,
-  } = useMemo(() => calculateStatsInfo(stats), [stats]);
+  const dispatch = useAppDispatch();
+  const shown = useSelector(s => s.ui.popup === "stats");
+  const stats = useSelector(s => s.stats);
+  const { played, win, currStreak, maxStreak, guessCount, guessStyle, bestTime, avgTime7, avgTimeAll } = useMemo(
+    () => calculateStatsInfo(stats),
+    [stats],
+  );
 
-  function formatHistory(history: GameHistory[]) {
+  function formatHistory(history: readonly GameHistory[]) {
     const msg = [];
     for (const game of history) {
       const id = game.id;
@@ -37,89 +22,18 @@ export default function Stats() {
     }
     return msg.join("\n");
   }
-  function handleAddClick() {
-    let input, val;
-    while (true) {
-      while (true) {
-        input = prompt("Enter Daily Duotrigordle #");
-        if (!input) return;
-        val = parseFloat(input);
-        if (Number.isInteger(val) && val >= 1) {
-          break;
-        }
-        alert("Please enter a positive integer");
-      }
-      const id = val;
-      while (true) {
-        input = prompt(
-          'Enter number of guesses taken in the game (or "X" if failed)'
-        );
-        if (!input) return;
-        if (input.toLowerCase() === "x") {
-          val = null;
-          break;
-        }
-        val = parseFloat(input);
-        if (Number.isInteger(val) && 32 <= val && val <= 37) {
-          break;
-        }
-        alert('Please enter "X" or an integer between 32-37');
-      }
-      const guesses = val;
-      while (true) {
-        input = prompt(
-          "Enter number of seconds taken to complete the game (can be fractional)"
-        );
-        if (!input) return;
-        val = parseFloat(input);
-        if (val > 0) {
-          break;
-        }
-        alert("Please enter a positive number");
-      }
-      const time = val * 1000;
-      dispatch(addHistory({ id, guesses, time }));
-      alert(
-        `Added game:\n` +
-          `Daily #${id} ${guesses ?? "X"}/37 ${formatTimeElapsed(time)}`
-      );
-    }
-  }
-  function handleRemoveClick() {
-    const removed: number[] = [];
-    while (true) {
-      if (stats.history.length === 0) {
-        alert("There are no games to remove");
-        return;
-      }
-      const input = prompt(
-        "Enter Daily # for the game you would like to remove:\n" +
-          formatHistory(stats.history.filter((x) => !removed.includes(x.id)))
-      );
-      if (!input) return;
-      const val = parseFloat(input);
-      if (!Number.isInteger(val) || val < 1) {
-        alert("Please enter a positive integer");
-        continue;
-      }
-      dispatch(removeHistory({ id: val }));
-      removed.push(val);
-    }
-  }
   function handleListClick() {
     const val = window.confirm(
-      "Press OK to copy history to clipboard\n" +
-        "Games History:\n" +
-        formatHistory(stats.history)
+      "Press OK to copy history to clipboard\n" + "Games History:\n" + formatHistory(stats.history),
     );
     if (val) {
       // setTimeout otherwise we get "DOMException: Document is not focused."
       setTimeout(
         () =>
-          navigator.clipboard
-            .writeText(formatHistory(stats.history))
-            .catch(() => alert("Error copying to clipboard")),
-        200
+          navigator.clipboard.writeText(formatHistory(stats.history)).catch(() => {
+            alert("Error copying to clipboard");
+          }),
+        200,
       );
     }
   }
@@ -148,7 +62,7 @@ export default function Stats() {
         </div>
         <p className="stats-title">Guess Distribution</p>
         <div className="stats-chart">
-          {range(6).map((i) => (
+          {range(6).map(i => (
             <Fragment key={i}>
               <p>{i + 32}</p>
               <div className="bar-wrapper">
@@ -168,25 +82,10 @@ export default function Stats() {
           <p>Average Time (all):</p>
           <p>{avgTimeAll}</p>
         </div>
-        <div className="stats-import">
-          <button className="link" onClick={handleAddClick}>
-            Add
-          </button>
-          <button className="link" onClick={handleRemoveClick}>
-            Remove
-          </button>
-          <button className="link" onClick={handleListClick}>
-            List
-          </button>
-          <a
-            href="https://github.com/thesilican/duotrigordle/tree/main/docs/Inputting_Stats.md"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Help
-          </a>
-        </div>
-        <button className="close" onClick={() => dispatch(showPopup(null))}>
+        <button className="link" onClick={handleListClick}>
+          List
+        </button>
+        <button className="close" onClick={() => dispatch(showPopup())}>
           close
         </button>
       </div>
@@ -197,7 +96,7 @@ export default function Stats() {
 function calculateStatsInfo(stats: StatsState) {
   const history = stats.history;
   const played = history.length;
-  const wonGames = history.filter((x) => x.guesses !== null).length;
+  const wonGames = history.filter(x => x.guesses !== null).length;
   const win = played === 0 ? 0 : ((wonGames / played) * 100).toFixed(0);
 
   const streaks = [];
@@ -217,13 +116,11 @@ function calculateStatsInfo(stats: StatsState) {
     }
   }
   const currStreak =
-    history.length === 0 || history[history.length - 1].guesses === null
-      ? 0
-      : streaks[streaks.length - 1];
+    history.length === 0 || history[history.length - 1].guesses === null ? 0 : streaks[streaks.length - 1];
   const maxStreak = Math.max(0, ...streaks);
   const guessCount = [];
   for (let i = 0; i < 6; i++) {
-    const count = history.filter((x) => x.guesses === i + 32).length;
+    const count = history.filter(x => x.guesses === i + 32).length;
     guessCount.push(count);
   }
   const guessMax = Math.max(...guessCount);
@@ -235,7 +132,7 @@ function calculateStatsInfo(stats: StatsState) {
     guessStyle.push(style);
   }
 
-  const times = history.filter((x) => x.guesses !== null).map((x) => x.time);
+  const times = history.filter(x => x.guesses !== null).map(x => x.time);
   let bestTime, avgTime7, avgTimeAll;
   if (times.length === 0) {
     bestTime = avgTime7 = avgTimeAll = formatTimeElapsed(0);

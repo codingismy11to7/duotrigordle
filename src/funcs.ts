@@ -1,5 +1,7 @@
 import { NUM_BOARDS, START_DATE, WORDS_TARGET } from "./consts";
 
+export const defined = <T>(x: T | undefined): x is T => x !== undefined && x !== null;
+
 // Generate integers 0 <= i < max
 export function range(max: number): number[] {
   const array = [];
@@ -13,8 +15,8 @@ export function range(max: number): number[] {
 // https://gist.github.com/miyaokamarina/0a8660363095bb5b5d5d7677ed5be9b0
 function MersenneTwister(seed: number | Uint32Array) {
   const next = (mt: Uint32Array, i: number, j: number, k: number) => {
-    j = (mt[i]! & 0x80000000) | (mt[j]! & 0x7fffffff);
-    mt[i] = mt[k]! ^ (j >>> 1) ^ (-(j & 0x1) & 0x9908b0df);
+    j = (mt[i] & 0x80000000) | (mt[j] & 0x7fffffff);
+    mt[i] = mt[k] ^ (j >>> 1) ^ (-(j & 0x1) & 0x9908b0df);
   };
   const twist = (mt: Uint32Array) => {
     let i = 0;
@@ -23,13 +25,13 @@ function MersenneTwister(seed: number | Uint32Array) {
     next(mt, 623, 0, 396);
   };
   let i = 1;
-  let mt = new Uint32Array(624);
+  const mt = new Uint32Array(624);
   const u32 = () => {
     if (i >= 624) {
       twist(mt);
       i = 0;
     }
-    let y = mt[i++]!;
+    let y = mt[i++];
     y ^= y >>> 11;
     y ^= (y << 7) & 0x9d2c5680;
     y ^= (y << 15) & 0xefc60000;
@@ -42,7 +44,7 @@ function MersenneTwister(seed: number | Uint32Array) {
   const u53 = () => (u32() >>> 5) * 67108864 + (u32() >>> 6);
   const f64_ix = () => u53() / 0x20_0000_0000_0000;
   const save = () => {
-    let dump = new Uint32Array(625);
+    const dump = new Uint32Array(625);
     dump[0] = i;
     dump.set(mt, 1);
     return dump;
@@ -50,14 +52,11 @@ function MersenneTwister(seed: number | Uint32Array) {
   if (typeof seed === "number") {
     mt[0] = seed;
     while (i < 624) {
-      seed = mt[i - 1]! ^ (mt[i - 1]! >>> 30);
-      mt[i] =
-        (((seed >>> 16) * 1812433253) << 16) +
-        (seed & 0xffff) * 1812433253 +
-        i++;
+      seed = mt[i - 1] ^ (mt[i - 1] >>> 30);
+      mt[i] = (((seed >>> 16) * 1812433253) << 16) + (seed & 0xffff) * 1812433253 + i++;
     }
   } else {
-    i = seed[0]!;
+    i = seed[0] ?? 0;
     mt.set(seed.slice(1));
   }
   return { u32, f32_ii, f32_ix, f32_xx, u53, f64_ix, save };
@@ -117,7 +116,7 @@ export function getTargetWords(id: number): string[] {
 // black, yellow, or green letter guess
 // e.g. getGuessResult("XYCEZ", "ABCDE") returns "BBGYB"
 export function getGuessColors(target: string, guess: string): string {
-  let guessResult: string[] = ["B", "B", "B", "B", "B"];
+  const guessResult: string[] = ["B", "B", "B", "B", "B"];
 
   // Find green letters
   const unmatched = new Map<string, number>();
@@ -145,16 +144,13 @@ export function getGuessColors(target: string, guess: string): string {
 }
 
 // Return all boards that are completed
-export function getCompletedBoards(
-  targets: string[],
-  guesses: string[]
-): boolean[] {
-  return targets.map((target) => guesses.includes(target));
+export function getCompletedBoards(targets: readonly string[], guesses: readonly string[]): boolean[] {
+  return targets.map(target => guesses.includes(target));
 }
 
 // Check if every target word has been guessed
-export function getAllWordsGuessed(targets: string[], guesses: string[]) {
-  return getCompletedBoards(targets, guesses).indexOf(false) === -1;
+export function getAllWordsGuessed(targets: readonly string[], guesses: readonly string[]) {
+  return !getCompletedBoards(targets, guesses).includes(false);
 }
 
 // Type declarations for fullscreen stuff
@@ -169,21 +165,20 @@ declare global {
 }
 
 export function isFullscreen() {
-  const element =
-    document.fullscreenElement || document.webkitFullscreenElement;
+  const element = document.fullscreenElement || document.webkitFullscreenElement;
   return Boolean(element);
 }
 export function enterFullscreen() {
   const element = document.documentElement;
   if (element.requestFullscreen) {
-    element.requestFullscreen();
+    void element.requestFullscreen();
   } else if (element.webkitRequestFullscreen) {
     element.webkitRequestFullscreen();
   }
 }
 export function exitFullscreen() {
   if (document.exitFullscreen) {
-    document.exitFullscreen();
+    void document.exitFullscreen();
   } else if (document.webkitExitFullscreen) {
     document.webkitExitFullscreen();
   }

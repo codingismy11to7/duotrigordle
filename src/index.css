@@ -389,6 +389,8 @@ button {
   font-size: calc(var(--app-width) / 50);
 
   margin: 0;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
 }
 .text .emoji {
   width: calc(var(--app-width) / 50);

@@ -1,6 +1,6 @@
 import { batch } from "react-redux";
-import { inputEnter, inputLetter, startGame, store } from ".";
 import { getTodaysId, randU32 } from "../funcs";
+import { inputEnter, inputLetter, startGame, store } from ".";
 
 // Debugging purposes
 declare global {
@@ -10,7 +10,7 @@ declare global {
   }
 }
 export function addDebugHooks() {
-  if (import.meta.env.NODE_ENV === "development") {
+  if (import.meta.env.MODE === "development") {
     window.resetGame = () => {
       const state = store.getState();
       const practice = state.game.practice;
@@ -21,6 +21,7 @@ export function addDebugHooks() {
       batch(() => {
         const state = store.getState();
         if (state.game.guesses.length !== 0) {
+          // eslint-disable-next-line no-console
           console.warn("You must have an empty game board to solve the game");
           return;
         }

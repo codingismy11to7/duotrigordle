@@ -1,14 +1,14 @@
 import cn from "classnames";
-import { CSSProperties, Fragment, useEffect, useMemo } from "react";
-import { useDispatch } from "react-redux";
+import React, { CSSProperties, Fragment, useEffect, useMemo } from "react";
 import { ALPHABET } from "../consts";
-import { range } from "../funcs";
+import { defined, range } from "../funcs";
 import {
   inputBackspace,
   inputEnter,
   inputLetter,
   selectCompletedBoards,
   selectGuessColors,
+  useAppDispatch,
   useSelector,
 } from "../store";
 
@@ -16,7 +16,7 @@ type KeyboardProps = {
   hidden: boolean;
 };
 export default function Keyboard(props: KeyboardProps) {
-  const hideKeyboard = useSelector((s) => s.settings.hideKeyboard);
+  const hideKeyboard = useSelector(s => s.settings.hideKeyboard);
   const hidden = props.hidden || hideKeyboard ? "hidden" : null;
 
   return (
@@ -59,8 +59,8 @@ export default function Keyboard(props: KeyboardProps) {
 }
 
 function KeydownListener() {
-  const dispatch = useDispatch();
-  const popup = useSelector((s) => s.ui.popup);
+  const dispatch = useAppDispatch();
+  const popup = useSelector(s => s.ui.popup);
 
   // Listen to keyboard events
   useEffect(() => {
@@ -93,31 +93,29 @@ type KeyProps = {
   char: string;
 };
 function Key(props: KeyProps) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const char =
     props.char === "backspace"
       ? "⌫"
       : props.char === "enter-1" || props.char === "enter-2"
-      ? ""
-      : props.char === "enter-3"
-      ? "⏎"
-      : props.char;
+        ? ""
+        : props.char === "enter-3"
+          ? "⏎"
+          : props.char;
   const enterClass = props.char.startsWith("enter-") ? props.char : null;
   const handleClick =
     props.char === "backspace"
       ? () => dispatch(inputBackspace())
       : props.char.startsWith("enter-")
-      ? () => dispatch(inputEnter({ timestamp: Date.now() }))
-      : () => dispatch(inputLetter({ letter: props.char }));
+        ? () => dispatch(inputEnter({ timestamp: Date.now() }))
+        : () => dispatch(inputLetter({ letter: props.char }));
 
-  const targets = useSelector((s) => s.game.targets);
-  const guesses = useSelector((s) => s.game.guesses);
+  const targets = useSelector(s => s.game.targets);
+  const guesses = useSelector(s => s.game.guesses);
   const guessColors = useSelector(selectGuessColors);
-  const wideMode = useSelector((s) => s.settings.wideMode);
-  const hideCompletedBoards = useSelector(
-    (s) => s.settings.hideCompletedBoards
-  );
-  const highlightedBoard = useSelector((s) => s.ui.highlightedBoard);
+  const wideMode = useSelector(s => s.settings.wideMode);
+  const hideCompletedBoards = useSelector(s => s.settings.hideCompletedBoards);
+  const highlightedBoard = useSelector(s => s.ui.highlightedBoard);
   const completedBoards = useSelector(selectCompletedBoards);
 
   const styles = useMemo(
@@ -130,26 +128,13 @@ function Key(props: KeyProps) {
         completedBoards,
         wideMode,
         hideCompletedBoards,
-        highlightedBoard
+        highlightedBoard,
       ),
-    [
-      char,
-      targets,
-      guesses,
-      guessColors,
-      completedBoards,
-      wideMode,
-      hideCompletedBoards,
-      highlightedBoard,
-    ]
+    [char, targets, guesses, guessColors, completedBoards, wideMode, hideCompletedBoards, highlightedBoard],
   );
 
   return (
-    <button
-      className={cn("key", enterClass)}
-      style={styles}
-      onClick={handleClick}
-    >
+    <button className={cn("key", enterClass)} style={styles} onClick={handleClick}>
       <span>{char}</span>
     </button>
   );
@@ -157,13 +142,13 @@ function Key(props: KeyProps) {
 
 function generateStyles(
   char: string,
-  targets: string[],
-  guesses: string[],
-  guessColors: string[][],
-  completedBoards: boolean[],
+  targets: readonly string[],
+  guesses: readonly string[],
+  guessColors: ReadonlyArray<readonly string[]>,
+  completedBoards: readonly boolean[],
   wideMode: boolean,
   hideCompletedBoards: boolean,
-  highlightedBoard: number | null
+  highlightedBoard?: number,
 ): CSSProperties {
   // Don't generate style for backspace & enter keys
   if (!ALPHABET.has(char)) {
@@ -171,21 +156,21 @@ function generateStyles(
   }
 
   // Don't generate style if letter isn't in any guesses yet
-  if (!guesses.find((x) => x.includes(char))) {
+  if (!guesses.find(x => x.includes(char))) {
     return {};
   }
 
   // For board i, colors[i]
-  // is B if the letter is wrong, or the board is completed
+  // is B if the letter is wrong, or the board is completed
   // is Y if any guess has Y (but no G)
   // is G if any guess has G
-  let colors = [];
+  const colors = [];
   // Pad count if hideCompletedBoards is on
   let pad = 0;
   for (let i = 0; i < targets.length; i++) {
     // Check if board is complete
     if (completedBoards[i]) {
-      if (hideCompletedBoards && highlightedBoard === null) {
+      if (hideCompletedBoards && !defined(highlightedBoard)) {
         pad++;
       } else {
         colors.push("B");
@@ -212,7 +197,7 @@ function generateStyles(
   }
 
   // Special case: if highlighted board, then the array contains just one element
-  if (highlightedBoard !== null) {
+  if (defined(highlightedBoard)) {
     if (colors[highlightedBoard] === "B") {
       return {
         filter: "contrast(0.5) brightness(0.5)",
@@ -231,34 +216,24 @@ function generateStyles(
   }
 
   // If all B, then fade style
-  if (!colors.find((x) => x !== "B")) {
+  if (!colors.find(x => x !== "B")) {
     return {
       filter: "contrast(0.5) brightness(0.5)",
     };
   }
 
   // Generate background image
-  return wideMode
-    ? generateBackgroundGrid(colors, 4, 8)
-    : generateBackgroundGrid(colors, 8, 4);
+  return wideMode ? generateBackgroundGrid(colors, 4, 8) : generateBackgroundGrid(colors, 8, 4);
 }
 
-function generateBackgroundGrid(
-  colors: string[],
-  rows: number,
-  columns: number
-): CSSProperties {
+function generateBackgroundGrid(colors: string[], rows: number, columns: number): CSSProperties {
   const backgroundImage = [];
   for (let i = 0; i < rows; i++) {
     const row = [];
     for (let j = 0; j < columns; j++) {
       const color = colors[i * columns + j];
       const colorVal =
-        color === "Y"
-          ? "var(--keyboard-yellow)"
-          : color === "G"
-          ? "var(--keyboard-green)"
-          : "transparent";
+        color === "Y" ? "var(--keyboard-yellow)" : color === "G" ? "var(--keyboard-green)" : "transparent";
       row.push(`${colorVal} calc(100%*${j}/${columns})`);
       row.push(`${colorVal} calc(100%*${j + 1}/${columns})`);
     }
@@ -266,7 +241,7 @@ function generateBackgroundGrid(
   }
   const backgroundSize = `100% calc(110%/${rows})`;
   const backgroundPosition = range(rows)
-    .map((i) => `0% calc(${i}/${rows - 1}*100%)`)
+    .map(i => `0% calc(${i}/${rows - 1}*100%)`)
     .join(",");
 
   return {

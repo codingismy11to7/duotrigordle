@@ -1,7 +1,6 @@
 import { ActionCreator, AnyAction } from "@reduxjs/toolkit";
 import cn from "classnames";
 import React, { Fragment, useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
 import { NUM_BOARDS, NUM_GUESSES, WORDS_VALID } from "../consts";
 import { range } from "../funcs";
 import {
@@ -13,26 +12,22 @@ import {
   highlightEsc,
   resolveSideEffect,
   selectGuessColors,
+  useAppDispatch,
   useSelector,
 } from "../store";
 
 export default function Boards() {
-  const gameOver = useSelector((s) => s.game.gameOver);
-  const showFloatingInput = useSelector((s) => s.settings.useFloatingInput);
+  const gameOver = useSelector(s => s.game.gameOver);
+  const showFloatingInput = useSelector(s => s.settings.useFloatingInput);
 
   return (
     <>
       <KeyboardListener />
       <div className={cn("boards", "show-input-hint")}>
-        {range(NUM_BOARDS).map((i) => (
+        {range(NUM_BOARDS).map(i => (
           <Board key={i} idx={i} />
         ))}
-        <div
-          className={cn(
-            "input-wrapper",
-            (gameOver || !showFloatingInput) && "hidden"
-          )}
-        >
+        <div className={cn("input-wrapper", (gameOver || !showFloatingInput) && "hidden")}>
           <div className="input">
             <div className="word">
               <InputWord />
@@ -52,8 +47,8 @@ const keyMap = new Map<string, ActionCreator<AnyAction>>([
   ["Escape", highlightEsc],
 ]);
 function KeyboardListener() {
-  const dispatch = useDispatch();
-  const popup = useSelector((s) => s.ui.popup);
+  const dispatch = useAppDispatch();
+  const popup = useSelector(s => s.ui.popup);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -70,7 +65,9 @@ function KeyboardListener() {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+    };
   }, [dispatch, popup]);
 
   return <Fragment />;
@@ -79,20 +76,19 @@ function KeyboardListener() {
 type BoardProps = {
   idx: number;
 };
-function Board(props: BoardProps) {
-  const dispatch = useDispatch();
-  const guesses = useSelector((s) => s.game.guesses);
-  const target = useSelector((s) => s.game.targets[props.idx]);
-  const gameOver = useSelector((s) => s.game.gameOver);
-  const colors = useSelector(selectGuessColors)[props.idx];
-  const highlight = useSelector((s) => s.ui.highlightedBoard === props.idx);
-  const useFloatingInput = useSelector((s) => s.settings.useFloatingInput);
-  const hideEmptyRows = useSelector((s) => s.settings.hideEmptyRows);
+function Board({ idx }: BoardProps) {
+  const dispatch = useAppDispatch();
+  const guesses = useSelector(s => s.game.guesses);
+  const target = useSelector(s => s.game.targets[idx]);
+  const gameOver = useSelector(s => s.game.gameOver);
+  const colors = useSelector(selectGuessColors)[idx];
+  const highlight = useSelector(s => s.ui.highlightedBoard === idx);
+  const useFloatingInput = useSelector(s => s.settings.useFloatingInput);
+  const hideEmptyRows = useSelector(s => s.settings.hideEmptyRows);
   const guessedAt = guesses.indexOf(target);
   const complete = guessedAt !== -1;
   const guessCount = complete ? guessedAt + 1 : guesses.length;
-  const showInput =
-    !complete && !gameOver && (!useFloatingInput || !hideEmptyRows);
+  const showInput = !complete && !gameOver && (!useFloatingInput || !hideEmptyRows);
   const emptyWordsCount = hideEmptyRows
     ? // If hide empty rows, then show one empty row if input isn't shown and there are no guesses
       !showInput && guessCount === 0
@@ -102,29 +98,21 @@ function Board(props: BoardProps) {
       NUM_GUESSES - guessCount - (showInput ? 1 : 0);
 
   const ref = useRef<HTMLDivElement>(null);
-  const sideEffect = useSelector((s) => s.ui.sideEffects[0] ?? null);
+  const sideEffect = useSelector(s => s.ui.sideEffects[0] ?? null);
   useEffect(() => {
-    if (
-      sideEffect &&
-      sideEffect.type === "scroll-board-into-view" &&
-      sideEffect.board === props.idx
-    ) {
+    if (sideEffect && sideEffect.type === "scroll-board-into-view" && sideEffect.board === idx) {
       ref.current?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
       });
       dispatch(resolveSideEffect(sideEffect.id));
     }
-  }, [props.idx, sideEffect, dispatch]);
+  }, [dispatch, idx, sideEffect]);
 
   return (
     <div
-      className={cn(
-        "board",
-        complete && !gameOver && "complete",
-        highlight && "highlight"
-      )}
-      onClick={() => dispatch(highlightClick(props.idx))}
+      className={cn("board", complete && !gameOver && "complete", highlight && "highlight")}
+      onClick={() => dispatch(highlightClick(idx))}
     >
       <div ref={ref} className="scroll-into-view" />
       <ColoredWords words={guesses} colors={colors} count={guessCount} />
@@ -135,42 +123,34 @@ function Board(props: BoardProps) {
 }
 
 type ColoredWordsProps = {
-  words: string[];
-  colors: string[];
+  words: readonly string[];
+  colors: readonly string[];
   count: number;
 };
-const ColoredWords = React.memo(function (props: ColoredWordsProps) {
-  const { words, colors, count } = props;
-  return (
-    <>
-      {range(count).map((i) => (
-        <Word key={i} letters={words[i]} colors={colors[i]} />
-      ))}
-    </>
-  );
-});
+const ColoredWordsRenderer = ({ words, colors, count }: ColoredWordsProps) => (
+  <>
+    {range(count).map(i => (
+      <Word key={i} letters={words[i]} colors={colors[i]} />
+    ))}
+  </>
+);
+const ColoredWords = React.memo(ColoredWordsRenderer);
 
 type EmptyWordsProps = {
   count: number;
 };
-const EmptyWords = React.memo(function (props: EmptyWordsProps) {
-  return (
-    <>
-      {range(props.count).map((i) => (
-        <Word key={i} letters="" />
-      ))}
-    </>
-  );
-});
+const EmptyWordsRenderer = ({ count }: EmptyWordsProps) => (
+  <>
+    {range(count).map(i => (
+      <Word key={i} letters="" />
+    ))}
+  </>
+);
+const EmptyWords = React.memo(EmptyWordsRenderer);
 
 function InputWord() {
-  const input = useSelector((s) => s.game.input);
-  return (
-    <Word
-      letters={input}
-      textRed={input.length === 5 && !WORDS_VALID.has(input)}
-    />
-  );
+  const input = useSelector(s => s.game.input);
+  return <Word letters={input} textRed={input.length === 5 && !WORDS_VALID.has(input)} />;
 }
 
 type WordProps = {
@@ -179,21 +159,22 @@ type WordProps = {
   textRed?: boolean;
   inputId?: number;
 };
-const Word = React.memo(function (props: WordProps) {
+const WordRenderer = function (props: WordProps) {
   return (
     <>
-      {range(5).map((i) => (
+      {range(5).map(i => (
         <Cell
           key={i}
           inputId={i === 0 ? props.inputId : undefined}
           char={props.letters[i] ?? ""}
           textRed={props.textRed}
-          color={props.colors ? (props.colors[i] as "B") : undefined}
+          color={props.colors?.[i] as "B" | undefined /* TODO fix the colors to be strongly typed and a 5-tuple */}
         />
       ))}
     </>
   );
-});
+};
+const Word = React.memo(WordRenderer);
 
 type CellProps = {
   char: string;
@@ -201,21 +182,13 @@ type CellProps = {
   inputId?: number;
   textRed?: boolean;
 };
-function Cell(props: CellProps) {
-  const color =
-    props.color === "Y"
-      ? "yellow"
-      : props.color === "G"
-      ? "green"
-      : props.color === "B"
-      ? "gray"
-      : null;
-  const textRed = props.textRed ? "text-red" : null;
-  const id =
-    props.inputId !== undefined ? `input-${props.inputId + 1}` : undefined;
+function Cell({ char, color, inputId, textRed }: CellProps) {
+  const colorStyle = color === "Y" ? "yellow" : color === "G" ? "green" : color === "B" ? "gray" : null;
+  const textRedStyle = textRed ? "text-red" : null;
+  const id = inputId !== undefined ? `input-${inputId + 1}` : undefined;
   return (
-    <div id={id} className={cn("cell", color, textRed)}>
-      <span className="letter">{props.char}</span>
+    <div id={id} className={cn("cell", colorStyle, textRedStyle)}>
+      <span className="letter">{char}</span>
     </div>
   );
 }

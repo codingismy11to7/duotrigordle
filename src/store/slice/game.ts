@@ -1,22 +1,18 @@
 import { createAction, createReducer } from "@reduxjs/toolkit";
+import { castDraft } from "immer";
 import { initialState, insertHistory } from "..";
 import { NUM_BOARDS, NUM_GUESSES, WORDS_VALID } from "../../consts";
-import {
-  getAllWordsGuessed,
-  getCompletedBoards,
-  getTargetWords,
-  range,
-} from "../../funcs";
+import { defined, getAllWordsGuessed, getCompletedBoards, getTargetWords, range } from "../../funcs";
 
-export type GameState = {
+export type GameState = Readonly<{
   // Daily Duotrigordle number (seed for target words)
   id: number;
   // Current word input
   input: string;
   // List of guesses
-  guesses: string[];
+  guesses: readonly string[];
   // 32 wordle targets
-  targets: string[];
+  targets: readonly string[];
   // Whether or not the game is finished
   gameOver: boolean;
   // Whether or not the game is in practice mode
@@ -25,12 +21,12 @@ export type GameState = {
   startTime: number;
   // End timestamp (milliseconds from unix epoch)
   endTime: number;
-};
+}>;
 export const gameInitialState: GameState = {
   id: 0,
   input: "",
   guesses: [],
-  targets: range(NUM_BOARDS).map((_) => "AAAAA"),
+  targets: range(NUM_BOARDS).map(() => "AAAAA"),
   gameOver: false,
   practice: true,
   startTime: 0,
@@ -38,22 +34,18 @@ export const gameInitialState: GameState = {
 };
 
 export const loadGame = createAction<{ game: GameState }>("game/loadGame");
-export const startGame = createAction<{ id: number; practice: boolean }>(
-  "game/startGame"
-);
+export const startGame = createAction<{ id: number; practice: boolean }>("game/startGame");
 export const inputLetter = createAction<{ letter: string }>("game/inputLetter");
 export const inputBackspace = createAction("game/inputBackspace");
-export const inputEnter = createAction<{ timestamp: number }>(
-  "game/inputEnter"
-);
+export const inputEnter = createAction<{ timestamp: number }>("game/inputEnter");
 
 export const gameReducer = createReducer(
   () => initialState,
-  (builder) =>
+  builder =>
     builder
       .addCase(loadGame, (state, action) => {
-        state.game = action.payload.game;
-        state.ui.highlightedBoard = null;
+        state.game = castDraft(action.payload.game);
+        state.ui.highlightedBoard = undefined;
       })
       .addCase(startGame, (state, action) => {
         state.game = {
@@ -66,7 +58,7 @@ export const gameReducer = createReducer(
           startTime: 0,
           endTime: 0,
         };
-        state.ui.highlightedBoard = null;
+        state.ui.highlightedBoard = undefined;
       })
       .addCase(inputLetter, (state, action) => {
         const game = state.game;
@@ -75,7 +67,7 @@ export const gameReducer = createReducer(
           game.input += action.payload.letter;
         }
       })
-      .addCase(inputBackspace, (state, _) => {
+      .addCase(inputBackspace, state => {
         const game = state.game;
         if (game.gameOver) return;
         game.input = game.input.substring(0, game.input.length - 1);
@@ -95,10 +87,7 @@ export const gameReducer = createReducer(
           game.startTime = action.payload.timestamp;
         }
 
-        if (
-          game.guesses.length === NUM_GUESSES ||
-          getAllWordsGuessed(game.targets, game.guesses)
-        ) {
+        if (game.guesses.length === NUM_GUESSES || getAllWordsGuessed(game.targets, game.guesses)) {
           // Game over
           game.gameOver = true;
           game.endTime = action.payload.timestamp;
@@ -110,18 +99,15 @@ export const gameReducer = createReducer(
               guesses: game.guesses.length,
               time: game.endTime - game.startTime,
             };
-            insertHistory(state.stats.history, gameHistory);
+            state.stats.history = insertHistory(state.stats.history, gameHistory);
           }
 
           // Clear board highlights
-          state.ui.highlightedBoard = null;
+          state.ui.highlightedBoard = undefined;
         } else {
           // Check if highlighted board is invalid, then shift right until it isn't
-          if (state.ui.highlightedBoard === null) return;
-          const completedBoards = getCompletedBoards(
-            game.targets,
-            game.guesses
-          );
+          if (!defined(state.ui.highlightedBoard)) return;
+          const completedBoards = getCompletedBoards(game.targets, game.guesses);
           let i = state.ui.highlightedBoard;
           const start = i;
           while (completedBoards[i]) {
@@ -132,5 +118,5 @@ export const gameReducer = createReducer(
           }
           state.ui.highlightedBoard = i;
         }
-      })
+      }),
 );
